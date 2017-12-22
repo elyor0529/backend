@@ -5,16 +5,19 @@ env:
 language: go
 
 go:
-  - 1.8
-  - 1.9
-  - tip
+  - 1.8.x
+  - 1.9.x
+  - master
 
 before_script:
   - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
   - chmod +x ./cc-test-reporter
   - ./cc-test-reporter before-build
+  - go get -u github.com/alecthomas/gometalinter
+  - gometalinter --install
 
 script:
+  - gometalinter --deadline 10m --config gometalinter.json --vendor ./...
   - go test -v -race ./...
 
 after_script:
