@@ -29,7 +29,7 @@ func newConn() (*websocket.Conn, error) {
 
 func TestHubRegister(t *testing.T) {
 	conn, err := newConn()
-	defer conn.Close()
+
 	assert.NoError(t, err)
 
 	err = conn.WriteMessage(websocket.TextMessage, []byte("test"))
@@ -43,14 +43,14 @@ func TestHubRegister(t *testing.T) {
 
 func TestHubClientSendMessage(t *testing.T) {
 	user, err := newConn()
-	defer user.Close()
 	assert.NoError(t, err)
 
 	agent, err := newConn()
-	defer agent.Close()
 	assert.NoError(t, err)
 
-	user.WriteMessage(websocket.TextMessage, []byte("hello"))
+	err = user.WriteMessage(websocket.TextMessage, []byte("hello"))
+	assert.NoError(t, err)
+
 	typ, data, err := agent.ReadMessage()
 	assert.NoError(t, err)
 	assert.Equal(t, websocket.TextMessage, typ)
