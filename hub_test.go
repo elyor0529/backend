@@ -32,27 +32,35 @@ func TestHubRegister(t *testing.T) {
 
 	assert.NoError(t, err)
 
-	err = conn.WriteMessage(websocket.TextMessage, []byte("test"))
+	json := Message{
+		Token:   "unittest",
+		Command: CommandRegister,
+		Data:    "",
+	}
+	err = conn.WriteJSON(json)
 	assert.NoError(t, err)
 
-	typ, data, err := conn.ReadMessage()
+	var data Message
+	err = conn.ReadJSON(&data)
 	assert.NoError(t, err)
-	assert.Equal(t, websocket.TextMessage, typ)
-	assert.Equal(t, []byte("test"), data)
+	assert.Equal(t, json, data)
 }
 
-func TestHubClientSendMessage(t *testing.T) {
+func TestHubClientListConversation(t *testing.T) {
 	user, err := newConn()
 	assert.NoError(t, err)
 
-	agent, err := newConn()
+	json := Message{
+		Token:   "unittest",
+		Command: CommandListConversation,
+		Data:    "",
+	}
+
+	err = user.WriteJSON(json)
 	assert.NoError(t, err)
 
-	err = user.WriteMessage(websocket.TextMessage, []byte("hello"))
+	var result Message
+	err = user.ReadJSON(&result)
 	assert.NoError(t, err)
-
-	typ, data, err := agent.ReadMessage()
-	assert.NoError(t, err)
-	assert.Equal(t, websocket.TextMessage, typ)
-	assert.Equal(t, []byte("hello"), data)
+	assert.Equal(t, "[]", result.Data)
 }

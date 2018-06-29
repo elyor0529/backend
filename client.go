@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"log"
 	"net/http"
 	"time"
@@ -42,6 +41,8 @@ type Client struct {
 
 	// Buffered channel of outbound messages.
 	send chan []byte
+
+	token string
 }
 
 // readPump pumps messages from the websocket connection to the hub.
@@ -68,16 +69,22 @@ func (c *Client) readPump() {
 		return c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	})
 
+	var msg Message
 	for {
-		_, message, err := c.conn.ReadMessage()
-		if err != nil {
+		if err := c.conn.ReadJSON(&msg); err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
 				log.Printf("error: %v", err)
 			}
 			break
 		}
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		c.hub.broadcast <- message
+		//msg = bytes.TrimSpace(bytes.Replace(msg, newline, space, -1))
+
+		if err := c.processCommand(&msg); err != nil {
+			log.Println("error: ", err)
+			continue
+		}
+
+		c.hub.broadcast <- msg
 	}
 }
 
@@ -142,6 +149,14 @@ func (c *Client) writePump() {
 			}
 		}
 	}
+}
+
+func (c *Client) processCommand(msg *Message) error {
+	switch msg.Command {
+	case CommandListConversation:
+		msg.Data = "[]"
+	}
+	return nil
 }
 
 // serveWs handles websocket requests from the peer.
