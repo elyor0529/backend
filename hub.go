@@ -15,6 +15,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 )
 
@@ -47,6 +48,17 @@ func (h *Hub) run() {
 	for {
 		select {
 		case client := <-h.register:
+			msg := Message{
+				Command: CommandAuth,
+				Token:   client.token,
+				Data:    fmt.Sprintf("OK %s", client.token),
+			}
+			b, err := json.Marshal(msg)
+			if err != nil {
+				log.Fatal("unable to send authentcation token", err)
+			}
+			client.send <- b
+
 			h.clients[client] = true
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {

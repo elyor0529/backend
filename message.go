@@ -3,13 +3,15 @@ package main
 type commands string
 
 const (
-	// CommandRegister for new session
-	CommandRegister commands = "reg"
+	// CommandAuth used for users and agents to authenticate
+	CommandAuth commands = "auth"
 	// CommandListConversation for listing conversations
 	CommandListConversation commands = "lc"
+	// CommandNewConversation when creating a new conversation
+	CommandNewConversation commands = "nc"
 )
 
-// Message represents all message sent and received
+// Message represents all message sent and received via websocket
 type Message struct {
 	Token             string   `json:"token"`
 	ConversationToken string   `json:"conversationId"`

@@ -1,11 +1,15 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/segmentio/ksuid"
 )
 
 const (
@@ -153,9 +157,21 @@ func (c *Client) writePump() {
 
 func (c *Client) processCommand(msg *Message) error {
 	switch msg.Command {
+	case CommandAuth:
+		if msg.Data == os.Getenv("PARLE_AGENT_TOKEN") {
+			c.token = ksuid.New().String()
+			msg.Data = fmt.Sprintf("OK %s", c.token)
+		}
 	case CommandListConversation:
 		msg.Data = "[]"
+	case CommandNewConversation:
+		msg.Data = "todo"
 	}
+	b, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+	c.send <- b
 	return nil
 }
 
@@ -166,7 +182,12 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
+	client := &Client{
+		hub:   hub,
+		conn:  conn,
+		send:  make(chan []byte, 256),
+		token: ksuid.New().String(),
+	}
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in
