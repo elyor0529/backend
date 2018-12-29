@@ -17,7 +17,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"os"
 
 	// this is the sqlite driver
 	_ "github.com/mattn/go-sqlite3"
@@ -26,12 +25,10 @@ import (
 // db is a global connection pool to the database
 var db *sql.DB
 
-func init() {
-	dbName := os.Getenv("PARLE_DB")
-	if len(dbName) == 0 {
-		dbName = "db/dev.db"
-	}
-	d, err := sql.Open("sqlite3", fmt.Sprintf("%s?_fk=1", dbName))
+// Open establishes a connection with a sqlite3 database
+func Open(name string) {
+
+	d, err := sql.Open("sqlite3", fmt.Sprintf("%s?_fk=1", name))
 	if err != nil {
 		log.Fatal("unable to open database:", err)
 	}

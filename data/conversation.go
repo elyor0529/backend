@@ -14,4 +14,5 @@
 package data
 
 type Conversation struct {
+	ID int `json:"id"`
 }

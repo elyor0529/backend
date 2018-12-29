@@ -17,12 +17,25 @@ import (
 	"flag"
 	"log"
 	"net/http"
+
+	"github.com/parle-io/backend/data"
 )
 
-var addr = flag.String("addr", ":8080", "http service address")
+var (
+	addr = flag.String("addr", ":8080", "http service address")
+	db   = flag.String("db", "db/parle.db", "database path and file name (default to db/dev.db)")
+)
 
 func main() {
 	flag.Parse()
+
+	dbName := *db
+	if len(dbName) == 0 {
+		dbName = "db/dev.db"
+	}
+
+	// Initiating the database connection pool
+	data.Open(dbName)
 
 	hub := newHub()
 	go hub.run()

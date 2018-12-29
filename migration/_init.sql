@@ -1,0 +1,44 @@
+CREATE TABLE settings (
+	name TEXT PRIMARY KEY,
+	value TEXT NOT NULL
+);
+
+CREATE TABLE companies (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	name TEXT NULL,
+	created DATE NOT NULL
+);
+
+CREATE TABLE users (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	company_id INTEGER NULL,
+	email TEXT NOT NULL UNIQUE,
+	created DATE NOT NULL,
+
+	FOREIGN KEY (company_id) REFERENCES companies(id)
+);
+
+CREATE TABLE conversations (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	user_id INTEGER NOT NULL,
+	company_id INTEGER NULL,
+	agent_id INTEGER NULL,
+	created DATE NOT NULL,
+	assigned DATE NULL,
+	closed DATE NULL
+);
+
+CREATE TABLE messages (
+	id VARCHAR(32) PRIMARY KEY,
+	convo_id INTEGER NOT NULL,
+	name TEXT NOT NULL,
+	msg TEXT NOT NULL,
+	created DATE NOT NULL
+);
+
+CREATE TABLE agents (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	email TEXT NOT NULL UNIQUE,
+	password TEXT NOT NULL,
+	created DATE NOT NULL
+);
