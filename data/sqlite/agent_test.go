@@ -11,8 +11,18 @@
  * see <http://www.gnu.org/licenses/>.
  */
 
-package data
+package sqlite
 
-type Conversation struct {
-	ID int `json:"id"`
+import (
+	"testing"
+)
+
+func TestAgentCanLogin(t *testing.T) {
+	agents := &Agents{}
+	me, err := agents.GetByEmail("admin@changeme.com")
+	if err != nil {
+		t.Fatal(err)
+	} else if me.ID == 0 || me.Email != "admin@changeme.com" {
+		t.Errorf("expected ID to be > 0 got %d and email to be admin@changeme.com got %s", me.ID, me.Email)
+	}
 }

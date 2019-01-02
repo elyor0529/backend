@@ -4,25 +4,25 @@
  * You may use, distribute and modify this code under the
  * terms of the GNU Affero General Public license, as
  * published by the Free Software Foundation, either version
- * 3 of the License, or (at your option) any later version.
+ * 3 of theLicense, or (at your option) any later version.
  *
  * You should have received a copy of the GNU Affero General
  * Public License along with this code as LICENSE file.  If not,
  * see <http://www.gnu.org/licenses/>.
  */
 
-package data
+package sqlite
 
 import (
-	"testing"
+	// sqlite3 db driver
+	_ "github.com/mattn/go-sqlite3"
+
 )
 
-func TestAgentCanLogin(t *testing.T) {
-	agents := &Agents{}
-	me, err := agents.GetByEmail("admin@changeme.com")
-	if err != nil {
-		t.Fatal(err)
-	} else if me.ID == 0 || me.Email != "admin@changeme.com" {
-		t.Errorf("expected ID to be > 0 got %d and email to be admin@changeme.com got %s", me.ID, me.Email)
-	}
+
+// Companies holds all data access functions related to companies
+type Companies struct{}
+
+func (c *Companies) Identify() {
+
 }

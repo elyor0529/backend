@@ -11,8 +11,26 @@
  * see <http://www.gnu.org/licenses/>.
  */
 
-package data
+package sqlite
 
-type Conversation struct {
-	ID int `json:"id"`
+import (
+	"database/sql"
+
+	"github.com/parle-io/backend/data"
+)
+
+type Agents struct{}
+
+func (a *Agents) GetByEmail(email string) (*data.Agent, error) {
+	row := db.QueryRow("SELECT * FROM agents WHERE Email=?", email)
+
+	agent := &data.Agent{}
+	if err := a.read(row, agent); err != nil {
+		return nil, err
+	}
+	return agent, nil
+}
+
+func (a *Agents) read(row *sql.Row, v *data.Agent) error {
+	return row.Scan(&v.ID, &v.Email, &v.Password, &v.Created)
 }

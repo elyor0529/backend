@@ -10,7 +10,7 @@
  * Public License along with this code as LICENSE file.  If not,
  * see <http://www.gnu.org/licenses/>.
  */
-package data
+package sqlite
 
 import (
 	"log"
@@ -30,7 +30,7 @@ func TestMain(m *testing.M) {
 		log.Fatal("database should not be initialized")
 	}
 
-	if err := sys.Create("../migration", "unittest"); err != nil {
+	if err := sys.Create("./migration", "unittest"); err != nil {
 		log.Fatal("error while creating initial database schema: ", err)
 	}
 
