@@ -11,7 +11,7 @@
  * see <http://www.gnu.org/licenses/>.
  */
 
-package data
+package sqlite
 
 import (
 	// sqlite3 db driver

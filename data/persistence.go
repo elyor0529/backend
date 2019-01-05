@@ -4,7 +4,7 @@
  * You may use, distribute and modify this code under the
  * terms of the GNU Affero General Public license, as
  * published by the Free Software Foundation, either version
- * 3 of the License, or (at your option) any later version.
+ * 3 of theLicense, or (at your option) any later version.
  *
  * You should have received a copy of the GNU Affero General
  * Public License along with this code as LICENSE file.  If not,
@@ -13,6 +13,7 @@
 
 package data
 
-type Conversation struct {
-	ID int `json:"id"`
+type Persistence struct {
+	Agents    Agents
+	Companies Companies
 }

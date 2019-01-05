@@ -17,6 +17,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+
+	"github.com/parle-io/backend/data"
 )
 
 // Hub maintains the set of active clients and broadcasts messages to the
@@ -33,14 +35,18 @@ type Hub struct {
 
 	// Unregister requests from clients.
 	unregister chan *Client
+
+	// Persistence store and quries information from a persistence mechanism
+	persistence *data.Persistence
 }
 
-func newHub() *Hub {
+func newHub(persistence *data.Persistence) *Hub {
 	return &Hub{
-		broadcast:  make(chan Message),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
-		clients:    make(map[*Client]bool),
+		broadcast:   make(chan Message),
+		register:    make(chan *Client),
+		unregister:  make(chan *Client),
+		clients:     make(map[*Client]bool),
+		persistence: persistence,
 	}
 }
 

@@ -18,7 +18,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/parle-io/backend/data"
+	"github.com/parle-io/backend/data/sqlite"
 )
 
 var (
@@ -35,9 +35,9 @@ func main() {
 	}
 
 	// Initiating the database connection pool
-	data.Open(dbName)
+	sqlitePersistence := sqlite.Open(dbName)
 
-	hub := newHub()
+	hub := newHub(sqlitePersistence)
 	go hub.run()
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {

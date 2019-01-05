@@ -13,10 +13,7 @@
 
 package data
 
-import (
-	"database/sql"
-	"time"
-)
+import "time"
 
 type Agent struct {
 	ID       int       `json:"id"`
@@ -25,18 +22,6 @@ type Agent struct {
 	Created  time.Time `json:"created"`
 }
 
-type Agents struct{}
-
-func (a *Agents) GetByEmail(email string) (*Agent, error) {
-	row := db.QueryRow("SELECT * FROM agents WHERE Email=?", email)
-
-	agent := &Agent{}
-	if err := a.read(row, agent); err != nil {
-		return nil, err
-	}
-	return agent, nil
-}
-
-func (a *Agents) read(row *sql.Row, v *Agent) error {
-	return row.Scan(&v.ID, &v.Email, &v.Password, &v.Created)
+type Agents interface {
+	GetByEmail(string) (*Agent, error)
 }

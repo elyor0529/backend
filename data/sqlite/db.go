@@ -11,7 +11,7 @@
  * see <http://www.gnu.org/licenses/>.
  */
 
-package data
+package sqlite
 
 import (
 	"database/sql"
@@ -20,13 +20,14 @@ import (
 
 	// this is the sqlite driver
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/parle-io/backend/data"
 )
 
 // db is a global connection pool to the database
 var db *sql.DB
 
 // Open establishes a connection with a sqlite3 database
-func Open(name string) {
+func Open(name string) *data.Persistence {
 
 	d, err := sql.Open("sqlite3", fmt.Sprintf("%s?_fk=1", name))
 	if err != nil {
@@ -37,6 +38,10 @@ func Open(name string) {
 		log.Fatal("unable to ping database:", err)
 	}
 	db = d
+	return &data.Persistence{
+		Agents:    &Agents{},
+		Companies: &Companies{},
+	}
 }
 
 // Close makes sure the database is closed
