@@ -3,8 +3,10 @@ package main
 type commands string
 
 const (
-	// CommandAuth used for users and agents to authenticate
+	// CommandAuth used for agents to authenticate
 	CommandAuth commands = "auth"
+	// CommandIdentify used for visitors, leads and users to identify themselves
+	CommandIdentify commands = "identify"
 	// CommandListConversation for listing conversations
 	CommandListConversation commands = "lc"
 	// CommandNewConversation when creating a new conversation

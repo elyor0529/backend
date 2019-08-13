@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/parle-io/backend/data/agent"
+	"github.com/parle-io/backend/data/user"
 	"github.com/segmentio/ksuid"
 )
 
@@ -23,7 +24,7 @@ const (
 	pingPeriod = (pongWait * 9) / 10
 
 	// Maximum message size allowed from peer.
-	maxMessageSize = 512
+	maxMessageSize = 4096
 )
 
 var (
@@ -85,10 +86,11 @@ func (c *Client) readPump() {
 
 		if err := c.processCommand(&msg); err != nil {
 			log.Println("error: ", err)
+			c.send <- []byte(fmt.Sprintf("err: %v", err))
 			continue
 		}
 
-		c.hub.broadcast <- msg
+		//c.hub.broadcast <- msg
 	}
 }
 
@@ -158,14 +160,26 @@ func (c *Client) writePump() {
 func (c *Client) processCommand(msg *Message) error {
 	switch msg.Command {
 	case CommandAuth:
-		if msg.Data == os.Getenv("PARLE_AGENT_TOKEN") {
-			c.token = ksuid.New().String()
-			msg.Data = fmt.Sprintf("OK %s", c.token)
+		a, err := agent.Auth(msg.Data)
+		if err != nil {
+			return err
 		}
+		c.token = a.Token
+
+		msg.Data = c.encode(a)
+	case CommandIdentify:
+		id, err := user.Identify(msg.Token, msg.Data)
+		if err != nil {
+			return err
+		}
+
+		msg.Data = c.encode(id)
 	case CommandListConversation:
 		msg.Data = "[]"
 	case CommandNewConversation:
 		msg.Data = "todo"
+	default:
+		return fmt.Errorf("command %s not found", msg.Command)
 	}
 	b, err := json.Marshal(msg)
 	if err != nil {
@@ -194,4 +208,12 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	// new goroutines.
 	go client.writePump()
 	go client.readPump()
+}
+
+func (c *Client) encode(v interface{}) string {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return fmt.Sprintf("err: %v", err)
+	}
+	return string(b)
 }

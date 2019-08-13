@@ -1,14 +1,6 @@
 /* Parle - a free customer communication platform
  * Copyright (C) 2017 Focus Centric inc.
  *
- * You may use, distribute and modify this code under the
- * terms of the GNU Affero General Public license, as
- * published by the Free Software Foundation, either version
- * 3 of theLicense, or (at your option) any later version.
- *
- * You should have received a copy of the GNU Affero General
- * Public License along with this code as LICENSE file.  If not,
- * see <http://www.gnu.org/licenses/>.
  */
 
 package main
@@ -17,8 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-
-	"github.com/parle-io/backend/data"
 )
 
 // Hub maintains the set of active clients and broadcasts messages to the
@@ -35,18 +25,14 @@ type Hub struct {
 
 	// Unregister requests from clients.
 	unregister chan *Client
-
-	// Persistence store and quries information from a persistence mechanism
-	persistence *data.Persistence
 }
 
-func newHub(persistence *data.Persistence) *Hub {
+func newHub() *Hub {
 	return &Hub{
-		broadcast:   make(chan Message),
-		register:    make(chan *Client),
-		unregister:  make(chan *Client),
-		clients:     make(map[*Client]bool),
-		persistence: persistence,
+		broadcast:  make(chan Message),
+		register:   make(chan *Client),
+		unregister: make(chan *Client),
+		clients:    make(map[*Client]bool),
 	}
 }
 
