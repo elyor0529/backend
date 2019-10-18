@@ -61,7 +61,7 @@ func updateVisitor(id uint64, v Visitor) {
 		return nil
 	})
 	if len(buf) == 0 {
-		log.Println("unable to find visitor %d for an update", id)
+		log.Printf("unable to find visitor %d for an update\n", id)
 		return
 	}
 
@@ -98,4 +98,8 @@ func updateVisitor(id uint64, v Visitor) {
 	if err != nil {
 		log.Println(err)
 	}
+}
+
+func removeVisitor(id uint64) error {
+	return nil
 }

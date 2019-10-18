@@ -63,9 +63,11 @@ func Identify(token string, msg string) (*Identification, error) {
 	}
 
 	var buf []byte
-
 	data.DB.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucketIdentify)
+		if b == nil {
+			fmt.Println("bucket is nil")
+		}
 		buf = b.Get([]byte(token))
 		return nil
 	})
@@ -102,20 +104,12 @@ func Identify(token string, msg string) (*Identification, error) {
 			id.IsVisitor = true
 		}
 
-		buf, err := data.Encode(id)
-		if err != nil {
-			return nil, fmt.Errorf("unable to encode the identification: %v", err)
-		}
-
-		err = data.DB.Update(func(tx *bolt.Tx) error {
-			b := tx.Bucket(bucketIdentify)
-			return b.Put([]byte(token), buf)
-		})
+		err := updateIdentity(id)
 		if err != nil {
 			return nil, fmt.Errorf("unable to save the new identification: %v", err)
 		}
 		return &id, nil
-	}
+	} // end of token not present in bucket
 
 	// we've seen there before, let's update their info
 	if err := data.Decode(buf, &id); err != nil {
@@ -126,7 +120,7 @@ func Identify(token string, msg string) (*Identification, error) {
 		if len(user.YourID) > 0 {
 			promoteToUser(&id, user)
 		} else if len(user.Email) > 0 {
-			promoteToLead(&id, (user).Lead)
+			promoteToLead(id, (user).Lead)
 		} else {
 			go updateVisitor(id.ReferenceID, (user).Visitor)
 		}
@@ -146,12 +140,40 @@ func addUser(user User) (User, error) {
 	return user, nil
 }
 
-func addLead(lead Lead) (Lead, error) {
-	return lead, nil
+func updateIdentity(id Identification) error {
+	err := data.DB.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(bucketIdentify)
+		updated, err := data.Encode(id)
+		if err != nil {
+			return err
+		}
+		if err := b.Put([]byte(id.ConnectionToken), updated); err != nil {
+			return err
+		}
+		return nil
+	})
+	return err
 }
 
-func promoteToLead(id *Identification, lead Lead) error {
+func promoteToLead(id Identification, lead Lead) error {
+	l, err := addLead(lead)
+	if err != nil {
+		return err
+	}
+
+	if err := removeVisitor(id.ReferenceID); err != nil {
+
+	}
+
+	id.ReferenceID = l.ID
+	id.IsVisitor = false
+	id.IsLead = true
+	if err := updateIdentity(id); err != nil {
+		return err
+	}
+
 	return nil
+
 }
 
 func promoteToUser(id *Identification, user User) error {

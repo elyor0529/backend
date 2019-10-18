@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/boltdb/bolt"
 	"github.com/parle-io/backend/data"
 )
 
@@ -18,6 +19,13 @@ func TestMain(m *testing.M) {
 	if err := data.Open("../db/test.db"); err != nil {
 		log.Fatal(err)
 	}
+
+	data.DB.Update(func(tx *bolt.Tx) error {
+		if _, err := tx.CreateBucket(bucketAgents); err != nil {
+			log.Fatal(err)
+		}
+		return nil
+	})
 
 	retval := m.Run()
 	data.Close()
@@ -31,7 +39,7 @@ func Test_Agent_Add(t *testing.T) {
 		Created:  time.Now(),
 	}
 
-	if err := Add(agent); err != nil {
+	if _, err := Add(agent); err != nil {
 		t.Fatal(err)
 	}
 
