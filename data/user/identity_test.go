@@ -29,6 +29,14 @@ func TestMain(m *testing.M) {
 		if _, err := tx.CreateBucket(bucketVisitor); err != nil {
 
 		}
+
+		if _, err := tx.CreateBucket(bucketLead); err != nil {
+
+		}
+
+		if _, err := tx.CreateBucket(bucketUser); err != nil {
+
+		}
 		return nil
 	})
 
@@ -49,8 +57,6 @@ func Test_Identify_Visitor(t *testing.T) {
 		t.Error("IsVisitor is true")
 	}
 
-	t.Logf("connection token %s", id.ConnectionToken)
-
 	check, err := getIdentity(id.ConnectionToken)
 	if err != nil {
 		t.Error(err)
@@ -70,7 +76,8 @@ func Test_Identify_Promote_To_Lead(t *testing.T) {
 	}
 	lead.ConnectionToken = visitorIdent.ConnectionToken
 
-	if _, err := Identify(visitorIdent.ConnectionToken, toJSON(lead)); err != nil {
+	leadIdent, err := Identify(visitorIdent.ConnectionToken, toJSON(lead))
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -81,7 +88,63 @@ func Test_Identify_Promote_To_Lead(t *testing.T) {
 		t.Error("identity not tagged as lead")
 	}
 
-	//TODO: Assert if the email was properly saved to the leads bucket
+	// is the visitor removed from the visitors bucket
+	v, err := getVisitor(visitorIdent.ReferenceID)
+	if err != nil {
+		t.Fatal(err)
+	} else if v != nil {
+		t.Errorf("we found the visitor %d but should be removed", visitorIdent.ReferenceID)
+	}
+
+	l, err := getLead(leadIdent.ReferenceID)
+	if err != nil {
+		t.Fatal(err)
+	} else if l == nil {
+		t.Errorf("we could not found the lead %d in the leads bucket", leadIdent.ReferenceID)
+	} else if l.Email != lead.Email {
+		t.Errorf("expected email to be %s got %s", lead.Email, l.Email)
+	}
+}
+
+func Test_Identify_Promote_To_User(t *testing.T) {
+	visitorIdent, err := Identify(getToken(), "{}")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	user := User{
+		YourID: getToken(),
+	}
+	user.ConnectionToken = visitorIdent.ConnectionToken
+	user.Email = "bob@test.com"
+
+	userIdent, err := Identify(visitorIdent.ConnectionToken, toJSON(user))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	verifyID, err := getIdentity(user.ConnectionToken)
+	if err != nil {
+		t.Error(err)
+	} else if verifyID.IsUser == false {
+		t.Fatal("identity not tagged as user")
+	}
+
+	v, err := getVisitor(visitorIdent.ReferenceID)
+	if err != nil {
+		t.Fatal(err)
+	} else if v != nil {
+		t.Errorf("we found the visitor %d but should be removed", visitorIdent.ReferenceID)
+	}
+
+	u, err := getUser(userIdent.ReferenceID)
+	if err != nil {
+		t.Fatal(err)
+	} else if u == nil {
+		t.Errorf("we could not found the user %d in the users bucket", userIdent.ReferenceID)
+	} else if u.YourID != user.YourID {
+		t.Errorf("expected YourID to be %s got %s", user.YourID, u.YourID)
+	}
 }
 
 func getToken() string {

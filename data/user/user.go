@@ -5,7 +5,14 @@
 
 package user
 
-import "time"
+import (
+	"time"
+
+	"github.com/boltdb/bolt"
+	"github.com/parle-io/backend/data"
+)
+
+var bucketUser = []byte("users")
 
 type User struct {
 	Lead
@@ -30,10 +37,59 @@ type Tracking struct {
 	Tracked  time.Time `json:"tracked"`
 }
 
-func Add(u User) (*User, error) {
-	return nil, nil
+func addUser(u User) (*User, error) {
+	err := data.DB.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(bucketUser)
+
+		id, err := b.NextSequence()
+		if err != nil {
+			return err
+		}
+
+		u.ID = id
+		buf, err := data.Encode(u)
+		if err != nil {
+			return err
+		}
+		return b.Put(data.IntToByteArray(u.ID), buf)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+
+func getUser(id uint64) (*User, error) {
+	var buf []byte
+
+	err := data.DB.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(bucketUser)
+
+		buf = b.Get(data.IntToByteArray(id))
+		return nil
+	})
+
+	if len(buf) == 0 {
+		return nil, nil
+	}
+
+	var u User
+	if err := data.Decode(buf, &u); err != nil {
+		return nil, err
+	}
+
+	return &u, err
 }
 
 func updateUser(id uint64, u User) {
 
+}
+
+func removeUser(id uint64) error {
+	err := data.DB.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(bucketUser)
+
+		return b.Delete(data.IntToByteArray(id))
+	})
+	return err
 }

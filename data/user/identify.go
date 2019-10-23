@@ -65,9 +65,7 @@ func Identify(token string, msg string) (*Identification, error) {
 	var buf []byte
 	data.DB.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucketIdentify)
-		if b == nil {
-			fmt.Println("bucket is nil")
-		}
+
 		buf = b.Get([]byte(token))
 		return nil
 	})
@@ -120,7 +118,7 @@ func Identify(token string, msg string) (*Identification, error) {
 		if len(user.YourID) > 0 {
 			promoteToUser(&id, user)
 		} else if len(user.Email) > 0 {
-			promoteToLead(id, (user).Lead)
+			promoteToLead(&id, (user).Lead)
 		} else {
 			go updateVisitor(id.ReferenceID, (user).Visitor)
 		}
@@ -134,10 +132,6 @@ func Identify(token string, msg string) (*Identification, error) {
 		go updateUser(id.ReferenceID, user)
 	}
 	return &id, nil
-}
-
-func addUser(user User) (User, error) {
-	return user, nil
 }
 
 func updateIdentity(id Identification) error {
@@ -155,20 +149,20 @@ func updateIdentity(id Identification) error {
 	return err
 }
 
-func promoteToLead(id Identification, lead Lead) error {
+func promoteToLead(id *Identification, lead Lead) error {
 	l, err := addLead(lead)
 	if err != nil {
 		return err
 	}
 
 	if err := removeVisitor(id.ReferenceID); err != nil {
-
+		return err
 	}
 
 	id.ReferenceID = l.ID
 	id.IsVisitor = false
 	id.IsLead = true
-	if err := updateIdentity(id); err != nil {
+	if err := updateIdentity(*id); err != nil {
 		return err
 	}
 
@@ -177,5 +171,28 @@ func promoteToLead(id Identification, lead Lead) error {
 }
 
 func promoteToUser(id *Identification, user User) error {
+	u, err := addUser(user)
+	if err != nil {
+		return err
+	}
+
+	if id.IsVisitor {
+		if err := removeVisitor(id.ReferenceID); err != nil {
+			return err
+		}
+	} else if id.IsLead {
+		if err := removeLead(id.ReferenceID); err != nil {
+			return err
+		}
+	}
+
+	id.ReferenceID = u.ID
+	id.IsVisitor = false
+	id.IsLead = false
+	id.IsUser = true
+	if err := updateIdentity(*id); err != nil {
+		return err
+	}
+
 	return nil
 }

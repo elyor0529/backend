@@ -53,6 +53,28 @@ func addVisitor(v Visitor) (*Visitor, error) {
 	return &v, nil
 }
 
+func getVisitor(id uint64) (*Visitor, error) {
+	var buf []byte
+
+	err := data.DB.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(bucketVisitor)
+
+		buf = b.Get(data.IntToByteArray(id))
+		return nil
+	})
+
+	if len(buf) == 0 {
+		return nil, nil
+	}
+
+	var v Visitor
+	if err := data.Decode(buf, &v); err != nil {
+		return nil, err
+	}
+
+	return &v, err
+}
+
 func updateVisitor(id uint64, v Visitor) {
 	var buf []byte
 	data.DB.View(func(tx *bolt.Tx) error {
@@ -101,5 +123,10 @@ func updateVisitor(id uint64, v Visitor) {
 }
 
 func removeVisitor(id uint64) error {
-	return nil
+	err := data.DB.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(bucketVisitor)
+
+		return b.Delete(data.IntToByteArray(id))
+	})
+	return err
 }
