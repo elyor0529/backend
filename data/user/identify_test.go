@@ -21,28 +21,30 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 
-	data.DB.Update(func(tx *bolt.Tx) error {
+	err := data.DB.Update(func(tx *bolt.Tx) error {
 		if _, err := tx.CreateBucket(bucketIdentify); err != nil {
-			fmt.Println("error creating bucket", err)
+			return err
 		}
 
 		if _, err := tx.CreateBucket(bucketVisitor); err != nil {
-
+			return err
 		}
 
 		if _, err := tx.CreateBucket(bucketLead); err != nil {
-
+			return err
 		}
 
 		if _, err := tx.CreateBucket(bucketUser); err != nil {
-
+			return err
 		}
 		return nil
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	retval := m.Run()
 	data.Close()
-
 	os.Exit(retval)
 }
 
@@ -90,8 +92,8 @@ func Test_Identify_Promote_To_Lead(t *testing.T) {
 
 	// is the visitor removed from the visitors bucket
 	v, err := getVisitor(visitorIdent.ReferenceID)
-	if err != nil {
-		t.Fatal(err)
+	if err == nil {
+		t.Fatalf("there's should be an error saying key not found")
 	} else if v != nil {
 		t.Errorf("we found the visitor %d but should be removed", visitorIdent.ReferenceID)
 	}
@@ -131,8 +133,8 @@ func Test_Identify_Promote_To_User(t *testing.T) {
 	}
 
 	v, err := getVisitor(visitorIdent.ReferenceID)
-	if err != nil {
-		t.Fatal(err)
+	if err == nil {
+		t.Fatalf("there's should be an error saying key not found")
 	} else if v != nil {
 		t.Errorf("we found the visitor %d but should be removed", visitorIdent.ReferenceID)
 	}
@@ -154,16 +156,10 @@ func getToken() string {
 func getIdentity(token string) (Identification, error) {
 	var id Identification
 
-	err := data.DB.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(bucketIdentify)
-
-		buf := b.Get([]byte(token))
-		if err := data.Decode(buf, &id); err != nil {
-			return err
-		}
-		return nil
-	})
-	return id, err
+	if err := data.Get(bucketIdentify, []byte(token), &id); err != nil {
+		return id, err
+	}
+	return id, nil
 }
 
 func toJSON(v interface{}) string {

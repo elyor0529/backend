@@ -6,24 +6,35 @@ package data
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"testing"
+
+	"github.com/boltdb/bolt"
 )
 
-func TestMain(m *testing.M) {
-	fmt.Println("test started")
+var bucketTest = []byte("tests")
 
+func TestMain(m *testing.M) {
 	if err := os.Remove("db/test.db"); err != nil {
 		fmt.Println("error reminving the test db", err)
 	}
 
-	fmt.Println("opening database")
-	Open("db/test.db")
+	if err := Open("db/test.db"); err != nil {
+		log.Fatal(err)
+	}
 
-	fmt.Println("running the test")
+	err := DB.Update(func(tx *bolt.Tx) error {
+		if _, err := tx.CreateBucket(bucketTest); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	retval := m.Run()
-
-	fmt.Println("closing the database")
 	Close()
 	os.Exit(retval)
 }

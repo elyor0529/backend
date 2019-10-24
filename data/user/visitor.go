@@ -6,10 +6,8 @@
 package user
 
 import (
-	"log"
 	"time"
 
-	"github.com/boltdb/bolt"
 	"github.com/parle-io/backend/data"
 )
 
@@ -26,107 +24,53 @@ type Visitor struct {
 	LastActivity    time.Time  `json:"lastActivity"`
 }
 
+func (v *Visitor) SetID(id uint64) {
+	v.ID = id
+}
+
 func addVisitor(v Visitor) (*Visitor, error) {
 	v.Created = time.Now()
 	v.Updated = v.Created
 	v.LastActivity = v.Created
 	v.SessionCount = 1
 
-	err := data.DB.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket(bucketVisitor)
-
-		id, err := b.NextSequence()
-		if err != nil {
-			return err
-		}
-
-		v.ID = id
-		buf, err := data.Encode(v)
-		if err != nil {
-			return err
-		}
-		return b.Put(data.IntToByteArray(v.ID), buf)
-	})
-	if err != nil {
+	if err := data.CreateWithAutoIncrement(bucketVisitor, &v); err != nil {
 		return nil, err
 	}
 	return &v, nil
 }
 
 func getVisitor(id uint64) (*Visitor, error) {
-	var buf []byte
-
-	err := data.DB.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(bucketVisitor)
-
-		buf = b.Get(data.IntToByteArray(id))
-		return nil
-	})
-
-	if len(buf) == 0 {
-		return nil, nil
-	}
-
 	var v Visitor
-	if err := data.Decode(buf, &v); err != nil {
+	if err := data.Get(bucketVisitor, data.IntToByteArray(id), &v); err != nil {
 		return nil, err
 	}
-
-	return &v, err
+	return &v, nil
 }
 
-func updateVisitor(id uint64, v Visitor) {
-	var buf []byte
-	data.DB.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(bucketVisitor)
-		buf = b.Get(data.IntToByteArray(id))
-		return nil
-	})
-	if len(buf) == 0 {
-		log.Printf("unable to find visitor %d for an update\n", id)
-		return
-	}
-
-	var update Visitor
-	if err := data.Decode(buf, &update); err != nil {
-		log.Println(err)
-		return
+func updateVisitor(id uint64, v Visitor) error {
+	var cur Visitor
+	if err := data.Get(bucketVisitor, data.IntToByteArray(id), &cur); err != nil {
+		return err
 	}
 
 	//TODO: make this better
 	now := time.Now()
-	if update.Updated.Day() != now.Day() {
-		update.SessionCount++
+	if cur.Updated.Day() != now.Day() {
+		cur.SessionCount++
 	}
 
-	update.Updated = now
-	update.LastActivity = now
-	update.BrowserAgent = v.BrowserAgent
+	cur.Updated = now
+	cur.LastActivity = now
+	cur.BrowserAgent = v.BrowserAgent
 
 	if len(v.Trackings) > 0 {
-		update.Trackings = append(update.Trackings, v.Trackings[0])
+		cur.Trackings = append(cur.Trackings, v.Trackings[0])
 	}
 
-	buf, err := data.Encode(update)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	err = data.DB.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket(bucketVisitor)
-		return b.Put(data.IntToByteArray(id), buf)
-	})
-	if err != nil {
-		log.Println(err)
-	}
+	return data.Update(bucketVisitor, data.IntToByteArray(id), cur)
 }
 
 func removeVisitor(id uint64) error {
-	err := data.DB.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket(bucketVisitor)
-
-		return b.Delete(data.IntToByteArray(id))
-	})
-	return err
+	return data.Delete(bucketVisitor, data.IntToByteArray(id))
 }

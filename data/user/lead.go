@@ -6,7 +6,6 @@
 package user
 
 import (
-	"github.com/boltdb/bolt"
 	"github.com/parle-io/backend/data"
 )
 
@@ -17,58 +16,28 @@ type Lead struct {
 	Email string `json:"email"`
 }
 
+func (l *Lead) SetID(id uint64) {
+	l.ID = id
+}
+
 func addLead(lead Lead) (*Lead, error) {
-	err := data.DB.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket(bucketLead)
-
-		id, err := b.NextSequence()
-		if err != nil {
-			return err
-		}
-
-		lead.ID = id
-		buf, err := data.Encode(lead)
-		if err != nil {
-			return err
-		}
-		return b.Put(data.IntToByteArray(lead.ID), buf)
-	})
-	if err != nil {
+	if err := data.CreateWithAutoIncrement(bucketLead, &lead); err != nil {
 		return nil, err
 	}
 	return &lead, nil
 }
 
 func getLead(id uint64) (*Lead, error) {
-	var buf []byte
-
-	err := data.DB.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(bucketLead)
-
-		buf = b.Get(data.IntToByteArray(id))
-		return nil
-	})
-
-	if len(buf) == 0 {
-		return nil, nil
-	}
-
 	var l Lead
-	if err := data.Decode(buf, &l); err != nil {
+	if err := data.Get(bucketLead, data.IntToByteArray(id), &l); err != nil {
 		return nil, err
 	}
-
-	return &l, err
+	return &l, nil
 }
 
 func updateLead(id uint64, l Lead) {
 }
 
 func removeLead(id uint64) error {
-	err := data.DB.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket(bucketLead)
-
-		return b.Delete(data.IntToByteArray(id))
-	})
-	return err
+	return data.Delete(bucketLead, data.IntToByteArray(id))
 }
