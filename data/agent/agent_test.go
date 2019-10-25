@@ -6,6 +6,7 @@
 package agent
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"testing"
@@ -16,13 +17,17 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	if err := os.Remove("../db/test.db"); err != nil {
+		fmt.Println("error reminving the test db", err)
+	}
+
 	if err := data.Open("../db/test.db"); err != nil {
 		log.Fatal(err)
 	}
 
 	data.DB.Update(func(tx *bolt.Tx) error {
 		if _, err := tx.CreateBucket(bucketAgents); err != nil {
-			log.Fatal(err)
+			log.Fatal("weird", err)
 		}
 		return nil
 	})

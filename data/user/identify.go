@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/boltdb/bolt"
 	"github.com/parle-io/backend/data"
 )
 
@@ -62,55 +61,14 @@ func Identify(token string, msg string) (*Identification, error) {
 		token = user.ConnectionToken
 	}
 
-	var buf []byte
-	data.DB.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(bucketIdentify)
-
-		buf = b.Get([]byte(token))
-		return nil
-	})
-	if len(buf) == 0 {
+	err := data.Get(bucketIdentify, []byte(token), &id)
+	if err == data.ErrNotFound {
 		// if we've never seen them, we add them as visitor or user
 		// depending if there's an email supplied
-
-		if len(user.YourID) > 0 {
-			u, err := addUser(user)
-			if err != nil {
-				return nil, fmt.Errorf("unable to add user: %v", err)
-			}
-
-			id.ReferenceID = u.ID
-			id.ConnectionToken = token
-			id.IsUser = true
-		} else if len(user.Email) > 0 {
-			l, err := addLead((user).Lead)
-			if err != nil {
-				return nil, fmt.Errorf("unable to add lead: %v", err)
-			}
-
-			id.ReferenceID = l.ID
-			id.ConnectionToken = token
-			id.IsLead = true
-		} else {
-			v, err := addVisitor((user).Visitor)
-			if err != nil {
-				return nil, fmt.Errorf("unable to add visitor: %v", err)
-			}
-
-			id.ReferenceID = v.ID
-			id.ConnectionToken = token
-			id.IsVisitor = true
-		}
-
-		err := updateIdentity(id)
-		if err != nil {
-			return nil, fmt.Errorf("unable to save the new identification: %v", err)
-		}
-		return &id, nil
-	} // end of token not present in bucket
-
-	// we've seen there before, let's update their info
-	if err := data.Decode(buf, &id); err != nil {
+		return addNewToken(id, user, token)
+	} else if err != nil {
+		// The Get returns an error, but not an ErrNotFound, so we got a
+		// real error that prevent continuing.
 		return nil, err
 	}
 
@@ -134,19 +92,45 @@ func Identify(token string, msg string) (*Identification, error) {
 	return &id, nil
 }
 
-func updateIdentity(id Identification) error {
-	err := data.DB.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket(bucketIdentify)
-		updated, err := data.Encode(id)
+func addNewToken(id Identification, user User, token string) (*Identification, error) {
+	if len(user.YourID) > 0 {
+		u, err := addUser(user)
 		if err != nil {
-			return err
+			return nil, fmt.Errorf("unable to add user: %v", err)
 		}
-		if err := b.Put([]byte(id.ConnectionToken), updated); err != nil {
-			return err
+
+		id.ReferenceID = u.ID
+		id.ConnectionToken = token
+		id.IsUser = true
+	} else if len(user.Email) > 0 {
+		l, err := addLead((user).Lead)
+		if err != nil {
+			return nil, fmt.Errorf("unable to add lead: %v", err)
 		}
-		return nil
-	})
-	return err
+
+		id.ReferenceID = l.ID
+		id.ConnectionToken = token
+		id.IsLead = true
+	} else {
+		v, err := addVisitor((user).Visitor)
+		if err != nil {
+			return nil, fmt.Errorf("unable to add visitor: %v", err)
+		}
+
+		id.ReferenceID = v.ID
+		id.ConnectionToken = token
+		id.IsVisitor = true
+	}
+
+	err := updateIdentity(id)
+	if err != nil {
+		return nil, fmt.Errorf("unable to save the new identification: %v", err)
+	}
+	return &id, nil
+}
+
+func updateIdentity(id Identification) error {
+	return data.Update(bucketIdentify, []byte(id.ConnectionToken), id)
 }
 
 func promoteToLead(id *Identification, lead Lead) error {

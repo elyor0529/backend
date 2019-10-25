@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/boltdb/bolt"
 	"github.com/parle-io/backend/data"
 )
 
@@ -23,42 +22,36 @@ type Agent struct {
 	Created  time.Time `json:"created"`
 }
 
+func (a *Agent) SetID(id uint64) {
+	a.ID = id
+}
+
 func Add(a Agent) (*Agent, error) {
-	err := data.DB.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket(bucketAgents)
-
-		id, err := b.NextSequence()
-		if err != nil {
-			return err
-		}
-
-		a.ID = id
-		buf, err := data.Encode(a)
-		if err != nil {
-			return err
-		}
-		return b.Put([]byte(a.Email), buf)
-	})
-	return &a, err
+	if err := data.CreateWithAutoIncrement(bucketAgents, &a); err != nil {
+		return nil, err
+	}
+	return &a, nil
 }
 
 func GetByEmail(email string) (*Agent, error) {
-	var buf []byte
-	err := data.DB.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(bucketAgents)
-
-		buf = b.Get([]byte(email))
-		return nil
-	})
+	var agent Agent
+	agents, err := data.List(bucketAgents, &agent)
 	if err != nil {
 		return nil, err
 	}
 
-	var a Agent
-	if err := data.Decode(buf, &a); err != nil {
-		return nil, err
+	for _, v := range agents {
+		a, ok := v.(Agent)
+		if !ok {
+			return nil, err
+		}
+
+		if a.Email == email {
+			return &a, nil
+		}
 	}
-	return &a, nil
+
+	return nil, nil
 }
 
 func validateToken(email, token string) (*Agent, error) {

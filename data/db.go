@@ -52,6 +52,27 @@ func Get(bucketName, key []byte, v interface{}) error {
 	return Decode(buf, v)
 }
 
+// TODO: Can we use only the []interface and not both params.
+func List(bucketName []byte, v interface{}) ([]interface{}, error) {
+	var s []interface{}
+
+	err := DB.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(bucketName)
+
+		c := b.Cursor()
+
+		for key, val := c.First(); key != nil; key, val = c.Next() {
+			if err := Decode(val, &v); err != nil {
+				return err
+			}
+
+			s = append(s, v)
+		}
+		return nil
+	})
+	return s, err
+}
+
 func Update(bucketName, key []byte, v interface{}) error {
 	buf, err := Encode(v)
 	if err != nil {
