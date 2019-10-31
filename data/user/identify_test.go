@@ -14,7 +14,7 @@ import (
 
 func TestMain(m *testing.M) {
 	if err := os.Remove("../db/test.db"); err != nil {
-		fmt.Println("error reminving the test db", err)
+		fmt.Println("error removing the test db", err)
 	}
 
 	if err := data.Open("../db/test.db"); err != nil {

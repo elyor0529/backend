@@ -7,6 +7,9 @@ package data
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"path"
 
 	"github.com/boltdb/bolt"
 )
@@ -14,7 +17,11 @@ import (
 var DB *bolt.DB
 
 func Open(dbFile string) error {
-	db, err := bolt.Open(dbFile, 0600, nil)
+	if err := os.MkdirAll(path.Dir(dbFile), 0777); err != nil {
+		log.Fatalf("unable to create database file %s err: %v", path.Dir(dbFile), err)
+	}
+
+	db, err := bolt.Open(dbFile, 0777, nil)
 	if err != nil {
 		return fmt.Errorf("unable to open database file %s: %v", dbFile, err)
 	}

@@ -34,24 +34,28 @@ func Add(a Agent) (*Agent, error) {
 }
 
 func GetByEmail(email string) (*Agent, error) {
-	var agent Agent
-	agents, err := data.List(bucketAgents, &agent)
+	var agents []Agent
+	err := data.List(bucketAgents, func(buf []byte) error {
+		var agent Agent
+		if err := data.Decode(buf, &agent); err != nil {
+			return err
+		}
+
+		agents = append(agents, agent)
+
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	for _, v := range agents {
-		a, ok := v.(Agent)
-		if !ok {
-			return nil, err
-		}
-
+	for _, a := range agents {
 		if a.Email == email {
 			return &a, nil
 		}
 	}
 
-	return nil, nil
+	return nil, fmt.Errorf("unable to find this agent %s", email)
 }
 
 func validateToken(email, token string) (*Agent, error) {
